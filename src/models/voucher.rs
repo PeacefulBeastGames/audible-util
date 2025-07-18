@@ -11,6 +11,17 @@ pub struct AudibleCliVoucher {
     pub response_groups: Vec<String>,
 }
 
+impl AudibleCliVoucher {
+    pub fn validate(&self) -> Result<(), String> {
+        self.content_license.validate().map_err(|e| format!("content_license: {}", e))?;
+        if self.response_groups.is_empty() {
+            return Err("response_groups is empty".to_string());
+        }
+        Ok(())
+    }
+}
+
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentLicense {
@@ -42,6 +53,26 @@ pub struct ContentLicense {
     pub voucher_id: String,
 }
 
+impl ContentLicense {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.acr.trim().is_empty() { return Err("acr is empty".to_string()); }
+        if self.asin.trim().is_empty() { return Err("asin is empty".to_string()); }
+        self.content_metadata.validate().map_err(|e| format!("content_metadata: {}", e))?;
+        if self.drm_type.trim().is_empty() { return Err("drm_type is empty".to_string()); }
+        if self.granted_right.trim().is_empty() { return Err("granted_right is empty".to_string()); }
+        if self.license_id.trim().is_empty() { return Err("license_id is empty".to_string()); }
+        self.license_response.validate().map_err(|e| format!("license_response: {}", e))?;
+        if self.license_response_type.trim().is_empty() { return Err("license_response_type is empty".to_string()); }
+        if self.message.trim().is_empty() { return Err("message is empty".to_string()); }
+        self.playback_info.validate().map_err(|e| format!("playback_info: {}", e))?;
+        if self.request_id.trim().is_empty() { return Err("request_id is empty".to_string()); }
+        if self.status_code.trim().is_empty() { return Err("status_code is empty".to_string()); }
+        if self.voucher_id.trim().is_empty() { return Err("voucher_id is empty".to_string()); }
+        Ok(())
+    }
+}
+
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentMetadata {
@@ -52,6 +83,16 @@ pub struct ContentMetadata {
     #[serde(rename = "last_position_heard")]
     pub last_position_heard: LastPositionHeard,
 }
+
+impl ContentMetadata {
+    pub fn validate(&self) -> Result<(), String> {
+        self.content_reference.validate().map_err(|e| format!("content_reference: {}", e))?;
+        self.content_url.validate().map_err(|e| format!("content_url: {}", e))?;
+        self.last_position_heard.validate().map_err(|e| format!("last_position_heard: {}", e))?;
+        Ok(())
+    }
+}
+
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,12 +112,37 @@ pub struct ContentReference {
     pub version: String,
 }
 
+impl ContentReference {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.acr.trim().is_empty() { return Err("acr is empty".to_string()); }
+        if self.asin.trim().is_empty() { return Err("asin is empty".to_string()); }
+        if self.codec.trim().is_empty() { return Err("codec is empty".to_string()); }
+        if self.content_format.trim().is_empty() { return Err("content_format is empty".to_string()); }
+        if self.content_size_in_bytes <= 0 { return Err("content_size_in_bytes is not positive".to_string()); }
+        if self.file_version.trim().is_empty() { return Err("file_version is empty".to_string()); }
+        if self.marketplace.trim().is_empty() { return Err("marketplace is empty".to_string()); }
+        if self.sku.trim().is_empty() { return Err("sku is empty".to_string()); }
+        if self.tempo.trim().is_empty() { return Err("tempo is empty".to_string()); }
+        if self.version.trim().is_empty() { return Err("version is empty".to_string()); }
+        Ok(())
+    }
+}
+
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentUrl {
     #[serde(rename = "offline_url")]
     pub offline_url: String,
 }
+
+impl ContentUrl {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.offline_url.trim().is_empty() { return Err("offline_url is empty".to_string()); }
+        Ok(())
+    }
+}
+
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -88,6 +154,16 @@ pub struct LastPositionHeard {
     pub status: String,
 }
 
+impl LastPositionHeard {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.last_updated.trim().is_empty() { return Err("last_updated is empty".to_string()); }
+        if self.position_ms < 0 { return Err("position_ms is negative".to_string()); }
+        if self.status.trim().is_empty() { return Err("status is empty".to_string()); }
+        Ok(())
+    }
+}
+
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LicenseResponse {
@@ -96,12 +172,35 @@ pub struct LicenseResponse {
     pub rules: Vec<Rule>,
 }
 
+impl LicenseResponse {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.key.trim().is_empty() { return Err("key is empty".to_string()); }
+        if self.iv.trim().is_empty() { return Err("iv is empty".to_string()); }
+        for (i, rule) in self.rules.iter().enumerate() {
+            rule.validate().map_err(|e| format!("rules[{}]: {}", i, e))?;
+        }
+        Ok(())
+    }
+}
+
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Rule {
     pub parameters: Vec<Parameter>,
     pub name: String,
 }
+
+impl Rule {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.name.trim().is_empty() { return Err("name is empty".to_string()); }
+        for (i, param) in self.parameters.iter().enumerate() {
+            param.validate().map_err(|e| format!("parameters[{}]: {}", i, e))?;
+        }
+        Ok(())
+    }
+}
+
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,12 +210,29 @@ pub struct Parameter {
     pub type_field: String,
 }
 
+impl Parameter {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.expire_date.trim().is_empty() { return Err("expire_date is empty".to_string()); }
+        if self.type_field.trim().is_empty() { return Err("type is empty".to_string()); }
+        Ok(())
+    }
+}
+
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackInfo {
     #[serde(rename = "last_position_heard")]
     pub last_position_heard: LastPositionHeard2,
 }
+
+impl PlaybackInfo {
+    pub fn validate(&self) -> Result<(), String> {
+        self.last_position_heard.validate().map_err(|e| format!("last_position_heard: {}", e))?;
+        Ok(())
+    }
+}
+
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -127,3 +243,13 @@ pub struct LastPositionHeard2 {
     pub position_ms: i64,
     pub status: String,
 }
+
+impl LastPositionHeard2 {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.last_updated.trim().is_empty() { return Err("last_updated is empty".to_string()); }
+        if self.position_ms < 0 { return Err("position_ms is negative".to_string()); }
+        if self.status.trim().is_empty() { return Err("status is empty".to_string()); }
+        Ok(())
+    }
+}
+
