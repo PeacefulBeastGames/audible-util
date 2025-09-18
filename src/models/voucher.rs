@@ -148,16 +148,20 @@ impl ContentUrl {
 #[serde(rename_all = "camelCase")]
 pub struct LastPositionHeard {
     #[serde(rename = "last_updated")]
-    pub last_updated: String,
+    pub last_updated: Option<String>,
     #[serde(rename = "position_ms")]
-    pub position_ms: i64,
+    pub position_ms: Option<i64>,
     pub status: String,
 }
 
 impl LastPositionHeard {
     pub fn validate(&self) -> Result<(), String> {
-        if self.last_updated.trim().is_empty() { return Err("last_updated is empty".to_string()); }
-        if self.position_ms < 0 { return Err("position_ms is negative".to_string()); }
+        if let Some(ref last_updated) = self.last_updated {
+            if last_updated.trim().is_empty() { return Err("last_updated is empty".to_string()); }
+        }
+        if let Some(position_ms) = self.position_ms {
+            if position_ms < 0 { return Err("position_ms is negative".to_string()); }
+        }
         if self.status.trim().is_empty() { return Err("status is empty".to_string()); }
         Ok(())
     }
@@ -238,16 +242,20 @@ impl PlaybackInfo {
 #[serde(rename_all = "camelCase")]
 pub struct LastPositionHeard2 {
     #[serde(rename = "last_updated")]
-    pub last_updated: String,
+    pub last_updated: Option<String>,
     #[serde(rename = "position_ms")]
-    pub position_ms: i64,
+    pub position_ms: Option<i64>,
     pub status: String,
 }
 
 impl LastPositionHeard2 {
     pub fn validate(&self) -> Result<(), String> {
-        if self.last_updated.trim().is_empty() { return Err("last_updated is empty".to_string()); }
-        if self.position_ms < 0 { return Err("position_ms is negative".to_string()); }
+        if let Some(ref last_updated) = self.last_updated {
+            if last_updated.trim().is_empty() { return Err("last_updated is empty".to_string()); }
+        }
+        if let Some(position_ms) = self.position_ms {
+            if position_ms < 0 { return Err("position_ms is negative".to_string()); }
+        }
         if self.status.trim().is_empty() { return Err("status is empty".to_string()); }
         Ok(())
     }

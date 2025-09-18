@@ -6,13 +6,18 @@
 
 ## Features
 
-- Converts Audible `.aaxc` files to MP3, WAV, or FLAC.
+- Converts Audible `.aaxc` files to MP3, WAV, FLAC, OGG, or M4A.
 - Uses voucher files from `audible-cli` for decryption.
 - Automatically infers voucher file if not specified.
+- **Chapter splitting** - Split audiobooks into individual chapter files.
+- **Hierarchical chapter organization** - Organize chapters into folders based on book structure.
+- **Smart chapter merging** - Merge short chapters to prevent audio gaps.
+- **Flexible naming formats** - Customize how chapter files are named.
+- **Duration filtering** - Filter out chapters below a minimum duration.
 - Extensible output format system (easy to add new formats).
-- Planned support for splitting output into chapters/segments.
 - Progress indication and detailed logging.
 - Helpful error messages and validation.
+- **Short CLI options** - Use `-s`, `-v`, `-o`, etc. for faster command entry.
 
 ---
 
@@ -60,31 +65,53 @@ If any of these checks fail, you will receive a clear, actionable error message.
 ### Basic Command
 
 ```sh
-audible-util --aaxc-path /path/to/book.aaxc --voucher-path /path/to/book.voucher
+audible-util -a /path/to/book.aaxc -v /path/to/book.voucher
 ```
 
-If `--voucher-path` is omitted, the tool will look for a voucher file named `<book>.voucher` in the same directory as the `.aaxc` file.
+If `-v` is omitted, the tool will look for a voucher file named `<book>.voucher` in the same directory as the `.aaxc` file.
 
 ### CLI Options
 
-| Option                | Short | Type         | Required | Description                                                                 |
-|-----------------------|-------|--------------|----------|-----------------------------------------------------------------------------|
-| `--aaxc-path`         | `-a`  | Path         | Yes      | Path to the input `.aaxc` file                                              |
-| `--voucher-path`      |       | Path         | No       | Path to the voucher file (from audible-cli). Inferred if not provided.      |
-| `--output-path`       |       | Path         | No       | Output file path. Defaults to `<album>.<ext>` in current directory.         |
-| `--split`             | `-s`  | Flag         | No       | (Planned) Split output into chapters/segments. Currently not implemented.   |
-| `--output-type`       |       | mp3/wav/flac | No       | Output file type. Defaults to `mp3`.                                        |
+| Option                      | Short | Type         | Required | Description                                                                 |
+|-----------------------------|-------|--------------|----------|-----------------------------------------------------------------------------|
+| `--aaxc-path`               | `-a`  | Path         | Yes      | Path to the input `.aaxc` file                                              |
+| `--voucher-path`            | `-v`  | Path         | No       | Path to the voucher file (from audible-cli). Inferred if not provided.      |
+| `--output-path`             | `-o`  | Path         | No       | Output file or directory. Defaults to `<album>.<ext>` in current directory. |
+| `--split`                   | `-s`  | Flag         | No       | Split output into chapters/segments. Requires chapters.json file.           |
+| `--min-chapter-duration`    | `-d`  | Seconds      | No       | Minimum chapter duration in seconds. Default: 0 (no minimum).              |
+| `--chapter-naming-format`   | `-f`  | Format       | No       | Chapter naming format. Default: `chapter-number-title`.                     |
+| `--split-structure`         | `-t`  | Structure    | No       | Output structure: `flat` or `hierarchical`. Default: `flat`.                |
+| `--merge-short-chapters`    | `-m`  | Flag         | No       | Merge short chapters with next chapter instead of filtering them out.       |
+| `--output-type`             | `-T`  | Format       | No       | Output file type. Default: `mp3`. Supports: mp3, wav, flac, ogg, m4a.      |
 
 #### Example: Convert to FLAC with custom output path
 
 ```sh
-audible-util --aaxc-path book.aaxc --voucher-path book.voucher --output-type flac --output-path mybook.flac
+audible-util -a book.aaxc -v book.voucher -T flac -o mybook.flac
 ```
 
 #### Example: Use default voucher and output
 
 ```sh
-audible-util --aaxc-path book.aaxc
+audible-util -a book.aaxc
+```
+
+#### Example: Split into chapters with hierarchical structure
+
+```sh
+audible-util -a book.aaxc -v book.voucher -s -t hierarchical -o chapters/
+```
+
+#### Example: Split with short chapter merging and custom naming
+
+```sh
+audible-util -a book.aaxc -v book.voucher -s -d 10 -m -f number-title -o chapters/
+```
+
+#### Example: Full featured command
+
+```sh
+audible-util -a book.aaxc -v book.voucher -s -d 5 -f chapter-number-title -t hierarchical -m -T flac -o output_dir/
 ```
 
 ---
@@ -99,19 +126,61 @@ audible-util --aaxc-path book.aaxc
 
 ## Output Formats
 
-- **MP3** (default): `--output-type mp3`
-- **WAV**: `--output-type wav`
-- **FLAC**: `--output-type flac`
+- **MP3** (default): `-T mp3`
+- **WAV**: `-T wav`
+- **FLAC**: `-T flac`
+- **OGG**: `-T ogg`
+- **M4A**: `-T m4a`
 
 The output format system is extensible. To add a new format, implement the `OutputFormat` trait in [`src/cli.rs`](src/cli.rs:30).
 
+## Chapter Splitting
+
+The tool can split audiobooks into individual chapter files using chapter metadata from a `chapters.json` file.
+
+### Chapter File Requirements
+
+- The chapter file must be named `<book>-chapters.json` and placed in the same directory as the `.aaxc` file.
+- The file must contain valid JSON with chapter timing information.
+- The tool will automatically infer the chapter file path if not explicitly provided.
+
+### Chapter Naming Formats
+
+- **`chapter-number-title`** (default): `Chapter01_Title.mp3`
+- **`number-title`**: `01_Title.mp3`
+- **`title-only`**: `Title.mp3`
+
+### Output Structures
+
+- **`flat`** (default): All chapters in a single directory
+- **`hierarchical`**: Organize chapters into folders based on book structure (e.g., `Part_One/Chapter01.mp3`)
+
+### Chapter Processing Options
+
+- **Minimum Duration**: Filter out chapters shorter than specified duration (`-d` seconds)
+- **Merge Short Chapters**: Merge short chapters with the next chapter to prevent audio gaps (`-m`)
+- **Smart Filtering**: Automatically handles chapters with no content or very short durations
+
 ---
 
-## Splitting Functionality
+## Advanced Features
 
-- The `--split` flag is present but **not yet implemented**.
-- Planned: Split output into chapters or segments using metadata.
-- To extend: Implement logic to parse chapter metadata and invoke ffmpeg for each segment, using the `OutputFormat` trait for extensibility. See code comments in [`src/main.rs`](src/main.rs:108) for guidance.
+### Progress Tracking
+
+The tool provides detailed progress information during conversion:
+- Real-time ffmpeg progress for each chapter
+- Chapter-by-chapter conversion status
+- File counting and validation
+- Detailed logging with `RUST_LOG=info`
+
+### Error Handling
+
+Comprehensive error handling with clear, actionable messages:
+- Input file validation (existence, readability, format)
+- Voucher file validation and parsing
+- Chapter file validation and parsing
+- Output directory creation and permission checks
+- External tool availability checks
 
 ---
 
@@ -144,6 +213,15 @@ The output format system is extensible. To add a new format, implement the `Outp
 - **"Failed to parse voucher file"**
   The voucher file must be valid JSON generated by `audible-cli`.
 
+- **"Chapter file does not exist"**
+  The tool requires a `chapters.json` file when using `-s`. Place it in the same directory as the `.aaxc` file.
+
+- **"Failed to parse chapter file"**
+  The chapter file must be valid JSON with proper chapter timing information.
+
+- **"No chapters found after filtering"**
+  All chapters were filtered out due to minimum duration requirements. Try reducing `-d` or using `-m` to merge short chapters.
+
 - **"Failed to start ffmpeg/ffprobe"**
   Ensure `ffmpeg` and `ffprobe` are installed and available in your `PATH`.
 
@@ -152,7 +230,7 @@ The output format system is extensible. To add a new format, implement the `Outp
 
 - For verbose logs, set the `RUST_LOG` environment variable:
   ```sh
-  RUST_LOG=info audible-util --aaxc-path book.aaxc
+  RUST_LOG=info audible-util -a book.aaxc
   ```
 
 ---
@@ -173,6 +251,44 @@ For major changes or questions, please open an issue first to discuss your propo
 ## Contact
 
 For questions, issues, or suggestions, please open an issue on the [GitHub repository](https://github.com/yourusername/audible-util) or contact the maintainer at `your.email@example.com`.
+
+---
+
+## Quick Reference
+
+### Most Common Commands
+
+```sh
+# Basic conversion
+audible-util -a book.aaxc
+
+# Convert with custom output
+audible-util -a book.aaxc -v book.voucher -o output.mp3
+
+# Split into chapters (flat structure)
+audible-util -a book.aaxc -s -o chapters/
+
+# Split with hierarchical structure
+audible-util -a book.aaxc -s -t hierarchical -o chapters/
+
+# Split with short chapter merging
+audible-util -a book.aaxc -s -d 10 -m -o chapters/
+
+# Full featured command
+audible-util -a book.aaxc -v book.voucher -s -d 5 -f chapter-number-title -t hierarchical -m -T flac -o output_dir/
+```
+
+### Short Options Summary
+
+- `-a` = `--aaxc-path` (required)
+- `-v` = `--voucher-path`
+- `-o` = `--output-path`
+- `-s` = `--split`
+- `-d` = `--min-chapter-duration`
+- `-f` = `--chapter-naming-format`
+- `-t` = `--split-structure`
+- `-m` = `--merge-short-chapters`
+- `-T` = `--output-type`
 
 ---
 
