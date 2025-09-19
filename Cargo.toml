@@ -1,8 +1,8 @@
 [package]
 name = "audible-util"
-version = "0.3.0"
+version = "0.5.0"
 edition = "2021"
-description = "A utility for converting Audible .aaxc files to common audio formats (mp3, wav, flac), with optional splitting by chapters."
+description = "A utility for converting Audible .aaxc files to common audio formats (mp3, wav, flac), with optional splitting by chapters and machine-readable JSON output."
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

@@ -81,6 +81,32 @@ pub struct Cli {
     /// Example: --output_type mp3
     #[clap(short = 'T', long, value_enum, value_name = "TYPE", default_value = "mp3", help = "Output format")]
     pub output_type: OutputType,
+
+    /// Enable verbose progress reporting.
+    ///
+    /// When enabled, shows detailed progress information including bitrate, file size, and conversion speed.
+    /// This provides more detailed feedback during long conversions.
+    #[clap(short = 'P', long, help = "Enable verbose progress reporting")]
+    pub verbose_progress: bool,
+
+    /// Enable machine-readable output mode.
+    ///
+    /// When enabled, outputs structured JSON progress information to stdout, making it easy to parse
+    /// from other programs. Progress bars and human-readable output are suppressed in this mode.
+    /// Perfect for integration with Python, shell scripts, or other automation tools.
+    #[clap(short = 'M', long, help = "Enable machine-readable JSON output mode")]
+    pub machine_readable: bool,
+
+    /// Number of threads for FFmpeg processing.
+    ///
+    /// Controls how many CPU cores FFmpeg will use for encoding/decoding.
+    /// - 0 or "auto": Let FFmpeg automatically detect and use all available cores (default)
+    /// - N: Use exactly N threads (e.g., 4 for 4 cores)
+    /// - "auto": Same as 0, auto-detect optimal thread count
+    /// 
+    /// Example: --threads 4 or --threads auto
+    #[clap(long, value_name = "THREADS", default_value = "0", help = "Number of threads for FFmpeg processing (0=auto)")]
+    pub threads: String,
 }
 
 pub trait OutputFormat {
